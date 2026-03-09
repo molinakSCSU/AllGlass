@@ -61,12 +61,33 @@ export function FloatingNav() {
     const hero = document.getElementById('home');
     if (!hero) return;
 
-    const heroThreshold = isMobile ? 0.82 : 0.08;
+    if (isMobile) {
+      let frameId = 0;
+      const syncHero = () => {
+        const heroBottom = hero.getBoundingClientRect().bottom;
+        setHeroVisible(heroBottom > window.innerHeight * 0.88);
+      };
+      const onViewportChange = () => {
+        cancelAnimationFrame(frameId);
+        frameId = window.requestAnimationFrame(syncHero);
+      };
+
+      window.addEventListener('scroll', onViewportChange, { passive: true });
+      window.addEventListener('resize', onViewportChange);
+      frameId = window.requestAnimationFrame(syncHero);
+
+      return () => {
+        cancelAnimationFrame(frameId);
+        window.removeEventListener('scroll', onViewportChange);
+        window.removeEventListener('resize', onViewportChange);
+      };
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setHeroVisible(entry.intersectionRatio >= heroThreshold);
+        setHeroVisible(entry.intersectionRatio >= 0.08);
       },
-      { threshold: [0, 0.08, 0.55, 0.82, 1] }
+      { threshold: [0, 0.08, 1] }
     );
 
     observer.observe(hero);
