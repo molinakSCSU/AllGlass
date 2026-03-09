@@ -68,7 +68,7 @@ export function QuotePanel() {
 
     try {
       formData.append('_subject', `New quote request: ${String(formData.get('service_needed') ?? 'Quote Request')}`);
-      formData.append('_template', 'table');
+      formData.append('_template', 'box');
       formData.append('_captcha', 'false');
       formData.append('_replyto', String(formData.get('email') ?? ''));
 
