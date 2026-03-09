@@ -4,6 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
+const FORMSUBMIT_ENDPOINT =
+  process.env.NEXT_PUBLIC_FORMSUBMIT_ENDPOINT ?? 'https://formsubmit.co/ajax/allglassct@gmail.com';
+
 type SubmitState =
   | { status: 'idle'; message: string }
   | { status: 'submitting'; message: string }
@@ -64,27 +67,29 @@ export function QuotePanel() {
     setSubmitState({ status: 'submitting', message: 'Sending your quote request...' });
 
     try {
-      const response = await fetch('/api/quote', {
+      formData.append('_subject', `New quote request: ${String(formData.get('service_needed') ?? 'Quote Request')}`);
+      formData.append('_template', 'table');
+      formData.append('_captcha', 'false');
+      formData.append('_replyto', String(formData.get('email') ?? ''));
+
+      const response = await fetch(FORMSUBMIT_ENDPOINT, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.get('name'),
-          email: formData.get('email'),
-          phone: formData.get('phone'),
-          serviceNeeded: formData.get('service_needed'),
-          projectNotes: formData.get('project_notes'),
-          address: formData.get('address'),
-        }),
+        body: formData,
       });
 
-      const result = (await response.json().catch(() => null)) as { message?: string } | null;
+      const result = (await response.json().catch(() => null)) as
+        | { message?: string; success?: string }
+        | null;
 
       if (!response.ok) {
         setSubmitState({
           status: 'error',
-          message: result?.message ?? 'Unable to send your request right now.',
+          message:
+            result?.message ??
+            'Unable to send your request right now. If this is the first submission, check the inbox for a FormSubmit confirmation email.',
         });
         return;
       }
@@ -92,12 +97,14 @@ export function QuotePanel() {
       form.reset();
       setSubmitState({
         status: 'success',
-        message: result?.message ?? 'Quote request sent successfully.',
+        message:
+          result?.message ?? 'Quote request sent successfully. We will follow up shortly.',
       });
     } catch {
       setSubmitState({
         status: 'error',
-        message: 'Unable to send your request right now.',
+        message:
+          'Unable to send your request right now. If this is the first submission, check the inbox for a FormSubmit confirmation email.',
       });
     }
   };
