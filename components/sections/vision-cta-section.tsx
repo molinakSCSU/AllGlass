@@ -4,9 +4,9 @@ export function VisionCtaSection() {
   return (
     <section id="contact" className="bg-(--bg-base) px-4 pb-14 sm:px-6 md:px-10 md:pb-20">
       <div className="mx-auto max-w-[1400px] border border-steel/28 bg-white/50 p-6 sm:p-8 md:p-12">
-        <p className="section-kicker mb-8">◆ WHERE VISION MEETS EXECUTION</p>
+        <p className="section-kicker mb-8">◆ CONTACT US</p>
         <h3 className="max-w-4xl text-balance text-3xl leading-[1.03] tracking-tight text-[#2f4156] sm:text-5xl md:text-[4.2rem]">
-          Every great build begins with understanding.
+          The right result starts with understanding.
         </h3>
 
         <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-5">

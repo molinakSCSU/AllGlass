@@ -49,7 +49,7 @@ export function ClientStoriesSection() {
     <section className="bg-(--bg-base) px-4 py-12 sm:px-6 md:px-10 md:py-16">
       <div className="mx-auto max-w-[1400px] border-t border-(--line) pt-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="section-kicker">◆ CLIENT STORIES</p>
+          <p className="section-kicker">◆ CLIENT REVIEWS</p>
           <p className="text-xs uppercase tracking-micro text-[#2f4156]/70">Google ★★★★★ · 11 Reviews</p>
         </div>
       </div>

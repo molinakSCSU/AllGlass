@@ -13,57 +13,113 @@ const menuItems = [
 ];
 
 export function FloatingNav() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [manualMenuOpen, setManualMenuOpen] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [footerVisible, setFooterVisible] = useState(false);
+  const [footerReadyToOpen, setFooterReadyToOpen] = useState(false);
+  const [footerDismissed, setFooterDismissed] = useState(false);
+  const autoFooterOpen = footerReadyToOpen && !footerDismissed;
+  const menuOpen = manualMenuOpen || autoFooterOpen;
+  const glassMode = heroVisible || footerVisible;
 
   const openQuote = () => {
-    setMenuOpen(false);
+    setManualMenuOpen(false);
+    setFooterDismissed(true);
     window.dispatchEvent(new CustomEvent('open-quote-panel'));
   };
 
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setMenuOpen(false);
+        if (manualMenuOpen) {
+          setManualMenuOpen(false);
+          return;
+        }
+
+        if (autoFooterOpen) {
+          setFooterDismissed(true);
+        }
       }
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
+  }, [autoFooterOpen, manualMenuOpen]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const syncMobile = () => {
+      setIsMobile(mediaQuery.matches);
+    };
+
+    syncMobile();
+    mediaQuery.addEventListener('change', syncMobile);
+    return () => mediaQuery.removeEventListener('change', syncMobile);
   }, []);
 
   useEffect(() => {
     const hero = document.getElementById('home');
     if (!hero) return;
 
+    const heroThreshold = isMobile ? 0.82 : 0.08;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setHeroVisible(entry.isIntersecting);
+        setHeroVisible(entry.intersectionRatio >= heroThreshold);
       },
-      { threshold: 0.08 }
+      { threshold: [0, 0.08, 0.55, 0.82, 1] }
     );
 
     observer.observe(hero);
     return () => observer.disconnect();
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    const footer = document.getElementById('site-footer');
+    if (!footer) return;
+
+    const footerThreshold = isMobile ? 0.12 : 0.65;
+    const footerOpenThreshold = isMobile ? 0.92 : 0.65;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const ratio = entry.intersectionRatio;
+        const isFooterVisible = ratio >= footerThreshold;
+        const canAutoOpenFooter = ratio >= footerOpenThreshold;
+
+        setFooterVisible(isFooterVisible);
+        setFooterReadyToOpen(canAutoOpenFooter);
+
+        if (!isFooterVisible) {
+          setFooterDismissed(false);
+        }
+      },
+      { threshold: [0, 0.12, 0.65, 0.92, 1] }
+    );
+
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [isMobile]);
+
+  useEffect(() => {
+    document.body.style.overflow = manualMenuOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [menuOpen]);
+  }, [manualMenuOpen]);
 
-  const useDarkStyle = menuOpen || !heroVisible;
+  const useDarkStyle = !glassMode;
+  const panelClassName = glassMode
+    ? 'pointer-events-auto mb-3 w-[min(92vw,320px)] rounded-none border border-white/24 bg-white/10 p-5 text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md sm:mb-0 sm:mt-3 sm:p-6'
+    : 'pointer-events-auto mb-3 w-[min(92vw,320px)] rounded-none border border-mist/22 bg-[#2f4156]/90 p-5 text-white shadow-[0_18px_44px_-24px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(200,217,230,0.12)] backdrop-blur-md sm:mb-0 sm:mt-3 sm:p-6';
 
   return (
     <motion.nav
       initial={{ y: -30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="pointer-events-none fixed inset-x-0 top-4 z-40 flex flex-col items-center px-4 sm:top-6"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex flex-col-reverse items-center px-4 sm:top-6 sm:bottom-auto sm:flex-col"
     >
       <div
-        className={`pointer-events-auto grid w-[min(94vw,360px)] grid-cols-[1fr_auto_1fr] items-center rounded-none px-4 py-2.5 text-white transition-[background-color,border-color,box-shadow] duration-300 ${
+        className={`pointer-events-auto grid w-[min(92vw,320px)] grid-cols-[1fr_auto_1fr] items-center rounded-none px-4 py-2 text-white transition-[background-color,border-color,box-shadow] duration-300 ${
           useDarkStyle
             ? 'border border-mist/22 bg-[#2f4156]/90 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(200,217,230,0.12)] backdrop-blur-md'
             : 'border border-white/24 bg-white/10 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-md'
@@ -79,11 +135,25 @@ export function FloatingNav() {
           <motion.button
             type="button"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMenuOpen((value) => !value)}
+            onClick={() => {
+              if (manualMenuOpen) {
+                setManualMenuOpen(false);
+                return;
+              }
+
+              if (autoFooterOpen) {
+                setFooterDismissed(true);
+                return;
+              }
+
+              setManualMenuOpen(true);
+            }}
             whileTap={{ scale: 0.96 }}
-            className={`grid h-11 w-11 place-items-center text-white ${
+            className={`grid h-8 w-8 place-items-center text-white ${
               menuOpen
-                ? 'border border-mist/45 bg-[#2f4156]/95'
+                ? glassMode
+                  ? 'border border-white/28 bg-white/10'
+                  : 'border border-mist/45 bg-[#2f4156]/95'
                 : 'border border-transparent bg-transparent'
             }`}
           >
@@ -96,7 +166,7 @@ export function FloatingNav() {
               transition={{ duration: 0.16, ease: 'easeOut' }}
               className="grid place-items-center"
             >
-                {menuOpen ? <X size={18} className="text-white" /> : <Menu size={18} className="text-white" />}
+                {menuOpen ? <X size={14} className="text-white" /> : <Menu size={14} className="text-white" />}
               </motion.span>
             </AnimatePresence>
           </motion.button>
@@ -106,18 +176,21 @@ export function FloatingNav() {
       <AnimatePresence>
         {menuOpen ? (
           <motion.div
-            initial={{ opacity: 0, y: -16 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.28, ease: 'easeOut' }}
-            className="pointer-events-auto mt-3 w-[min(94vw,360px)] rounded-none border border-mist/22 bg-[#2f4156]/90 p-5 text-white shadow-[0_18px_44px_-24px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(200,217,230,0.12)] backdrop-blur-md sm:p-6"
+            className={panelClassName}
           >
             <nav className="space-y-1">
               {menuItems.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    setManualMenuOpen(false);
+                    setFooterDismissed(true);
+                  }}
                   className="block py-2 text-lg tracking-tight text-white/95 transition-colors hover:text-white/65"
                 >
                   {item.label}
